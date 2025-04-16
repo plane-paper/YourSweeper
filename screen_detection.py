@@ -27,7 +27,7 @@ def find_game_window():
     screen_array = np.array(screenshot)
     
     # Save the screenshot for debugging
-    cv2.imwrite('debug_screenshot.png', cv2.cvtColor(screen_array, cv2.COLOR_RGB2BGR))
+    cv2.imwrite('Workspace/debug_screenshot.png', cv2.cvtColor(screen_array, cv2.COLOR_RGB2BGR))
     print("Saved debug screenshot as 'debug_screenshot.png'.")
 
     # Convert screenshot to grayscale
@@ -35,7 +35,7 @@ def find_game_window():
     
     # Load Minesweeper window template
     try:
-        template = cv2.imread('minesweeper_template.png', 0)
+        template = cv2.imread('Template/minesweeper_template.png', 0)
         if template is None:
             print("Error: Template image 'minesweeper_template.png' not found!")
             return None
@@ -45,7 +45,7 @@ def find_game_window():
         min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
         
         print(f"Template matching result: max_val={max_val}, max_loc={max_loc}")
-        cv2.imwrite('template_matching_result.png', (result * 255).astype(np.uint8))  # Save result for debugging
+        cv2.imwrite('Workspace/template_matching_result.png', (result * 255).astype(np.uint8))  # Save result for debugging
         
         if max_val > 0.6:  # Lowered threshold
             print("Minesweeper window found!")
@@ -84,7 +84,7 @@ def detect_grid(screen):
     if cropped_screen.size == 0:
         print(f"Error: Cropped region is empty! top_left={top_left}, bottom_right={bottom_right}")
         return None
-    cv2.imwrite('debug_cropped_screen.png', cropped_screen)  # Save for debugging
+    cv2.imwrite('Workspace/debug_cropped_screen.png', cropped_screen)  # Save for debugging
     
     # Convert cropped screen to grayscale
     gray = cv2.cvtColor(cropped_screen, cv2.COLOR_BGR2GRAY)
@@ -101,7 +101,7 @@ def detect_grid(screen):
     # Draw contours for debugging
     contour_debug = cropped_screen.copy()
     cv2.drawContours(contour_debug, contours, -1, (0, 255, 0), 1)  # Draw all contours in green
-    cv2.imwrite('debug_contours.png', contour_debug)
+    cv2.imwrite('Workspace/debug_contours.png', contour_debug)
     print("Saved debug_contours.png with detected contours.")
 
     # Filter contours by size and position
@@ -150,7 +150,7 @@ def detect_grid(screen):
         for x, y, w, h in row:
             cv2.rectangle(grid_debug, (x, y), (x + w, y + h), (255, 0, 0), 1)  # Draw rectangles in blue
 
-    cv2.imwrite('debug_grid.png', grid_debug)
+    cv2.imwrite('Workspace/debug_grid.png', grid_debug)
     print("Saved debug_grid.png with detected grid cells.")
 
     return rows
