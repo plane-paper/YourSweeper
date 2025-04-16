@@ -1,57 +1,91 @@
 from utils import get_neighbors
+from screen_detection import find_game_window
 import pyautogui
 import random
 
 def solve_grid(grid):
+    print("Starting to solve the grid...")
     moves = []
     guesses = []
-    safe_tiles = set()
-    
     for y, row in enumerate(grid):
         for x, cell in enumerate(row):
-            if cell.isdigit():
-                cell_value = int(cell)
-                neighbors = get_neighbors(grid, x, y)
-                unopened = [(nx, ny) for nx, ny in neighbors if grid[ny][nx] == 'unopened']
-                flagged = [(nx, ny) for nx, ny in neighbors if grid[ny][nx] == 'flag']
-                
-                # If number of unopened equals the cell value, flag them
-                if len(unopened) + len(flagged) == cell_value and len(flagged) < cell_value:
-                    for nx, ny in unopened:
-                        moves.append((nx, ny, 'flag'))
-                        safe_tiles.discard((nx, ny))
-                
-                # If number of flagged neighbors equals the cell value, click the rest
-                if len(flagged) == cell_value:
-                    for nx, ny in unopened:
-                        moves.append((nx, ny, 'click'))
-                        safe_tiles.add((nx, ny))
-
-                # Advanced pattern: Check for 1-2 patterns
-                if cell_value == 1 and len(unopened) == 2:
-                    for nx, ny in unopened:
-                        if any(grid[ny+dy][nx+dx] == '2' for dx, dy in get_neighbors(grid, nx, ny)):
-                            guesses.append((nx, ny))
-                
-                # Track risky guesses for unresolved tiles
-                if len(unopened) > 0 and len(flagged) < cell_value and (x, y) not in guesses:
-                    guesses.extend(unopened)
-
-    # Probability analysis: pick safest guess if needed
-    if guesses and safe_tiles:
-        guess_probabilities = {guess: sum(1 for dx, dy in get_neighbors(grid, *guess) if grid[dy][dx].isdigit()) for guess in guesses}
-        best_guess = min(guess_probabilities, key=guess_probabilities.get)
-        guesses = [best_guess]
-
+            if cell == 'unopened':
+                print(f"Analyzing cell ({x}, {y})")
+                if is_safe_move(grid, x, y):
+                    moves.append((x, y))
+                    print(f"Safe move identified at ({x}, {y})")
+                else:
+                    guesses.append((x, y))
+                    print(f"Guess needed at ({x}, {y})")
+    print("Solver finished analyzing grid.")
     return moves, guesses
 
+
 def perform_moves(moves):
-    for x, y, action in moves:
-        if action == 'click':
-            pyautogui.click(x, y)
-        elif action == 'flag':
-            pyautogui.rightClick(x, y)
+    if not moves:
+        print("No moves to perform.")
+        return
+
+    print("Performing moves...")
+    window = find_game_window()
+    if not window or not isinstance(window, tuple) or len(window) < 1:
+        print("Error: Game window not found or invalid format.")
+        return
+
+    left, top = window[0]
+    cell_size = 16  # Update with detected size
+    
+    for x, y in moves:
+        screen_x = left + x * cell_size + cell_size // 2
+        screen_y = top + y * cell_size + cell_size // 2
+        print(f"Clicking at screen coordinates ({screen_x}, {screen_y})")
+        pyautogui.click(screen_x, screen_y)
+    print("Moves completed!")
+
 
 def handle_guesses(guesses):
-    guess = random.choice(guesses)
-    pyautogui.click(guess[0], guess[1])
+    if not guesses:
+        print("No guesses to handle.")
+        return
+
+    print("Handling guesses... taking risks!")
+    window = find_game_window()
+    if not window or not isinstance(window, tuple) or len(window) < 1:
+        print("Error: Game window not found or invalid format.")
+        return
+
+    left, top = window[0]
+    cell_size = 16  # Update with detected size
+    
+    for x, y in guesses:
+        screen_x = left + x * cell_size + cell_size // 2
+        screen_y = top + y * cell_size + cell_size // 2
+        print(f"Clicking at screen coordinates ({screen_x}, {screen_y})")
+        pyautogui.click(screen_x, screen_y)
+    print("All guesses made.")
+
+
+def is_safe_move(grid, x, y):
+    """
+    Checks if a cell is guaranteed safe based on neighboring numbers and flags.
+    """
+    for nx, ny in get_neighbors(grid, x, y):
+        if 0 <= ny < len(grid) and 0 <= nx < len(grid[0]):  # Bounds check
+            if grid[ny][nx].isdigit():
+                num = int(grid[ny][nx])
+                flags, unopened = count_flags_and_unopened(grid, nx, ny)
+                if flags == num and unopened > 0:
+                    return True  # This cell is adjacent to a safe area
+    return False
+
+
+def count_flags_and_unopened(grid, x, y):
+    flags = 0
+    unopened = 0
+    for nx, ny in get_neighbors(grid, x, y):
+        if 0 <= ny < len(grid) and 0 <= nx < len(grid[0]):  # Bounds check
+            if grid[ny][nx] == 'flag':
+                flags += 1
+            elif grid[ny][nx] == 'unopened':
+                unopened += 1
+    return flags, unopened
