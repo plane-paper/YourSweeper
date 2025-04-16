@@ -2,6 +2,7 @@ from utils import get_neighbors
 from screen_detection import find_game_window
 import pyautogui
 import random
+from collections import defaultdict
 
 def solve_grid(grid):
     print("Starting to solve the grid...")
